@@ -30,6 +30,12 @@ class VerifyRequest(BaseModel):
 def health():
     return {"status": "ok", "service": "bayyinah"}
 
+@app.get("/debug/dorar")
+def debug_dorar():
+    from backend.pipeline.dorar_client import search_dorar
+    out = search_dorar("إنما الأعمال بالنيات", use_cache=False)
+    return {"error": out["error"], "results_count": len(out["results"])}
+
 
 @app.post("/api/verify")
 def verify(req: VerifyRequest):
