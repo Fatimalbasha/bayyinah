@@ -17,7 +17,13 @@ SEARCH_PAGE_URL = "https://dorar.net/hadith/search?q={query}"  # يفتح نتا
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (Bayyinah; hackathon project; contact: team)"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/javascript, */*; q=0.01",
+    "Accept-Language": "ar,en;q=0.9",
+    "Referer": "https://dorar.net/hadith",
+}
 
 # الحقول كما تظهر في hadith-info
 FIELD_MAP = {
@@ -103,14 +109,21 @@ def search_dorar(query: str, use_cache: bool = True, timeout: int = 20) -> dict:
         "results": [],
         "error": None,
     }
-    try:
-        resp = requests.get(API_URL.format(query=encoded), headers=HEADERS, timeout=timeout)
-        resp.raise_for_status()
-        data = resp.json()
-        html = data.get("ahadith", {}).get("result", "") or ""
-        payload["results"] = parse_dorar_html(html)
-    except Exception as e:  # شبكة/تحليل — نمتنع بدل أن ننهار
-        payload["error"] = f"{type(e).__name__}: {e}"
+
+    last_err = None
+    for attempt in range(2):  # محاولتان قبل الامتناع
+        try:
+            resp = requests.get(API_URL.format(query=encoded), headers=HEADERS, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            html = data.get("ahadith", {}).get("result", "") or ""
+            payload["results"] = parse_dorar_html(html)
+            last_err = None
+            break
+        except Exception as e:  # شبكة/تحليل — نعيد المحاولة ثم نمتنع بدل أن ننهار
+            last_err = f"{type(e).__name__}: {e}"
+    if last_err:
+        payload["error"] = last_err
 
     if use_cache and payload["error"] is None:
         cache_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
