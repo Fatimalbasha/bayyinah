@@ -1,0 +1,92 @@
+[
+  {
+    "grade": "موضوع",
+    "class": "fabricated",
+    "sim_tokens": 100.0,
+    "scholar": "الصغاني"
+  },
+  {
+    "grade": "لم أقف عليه",
+    "class": "unclear",
+    "sim_tokens": 100.0,
+    "scholar": "السخاوي"
+  },
+  {
+    "grade": "لم أقف عليه",
+    "class": "unclear",
+    "sim_tokens": 100.0,
+    "scholar": "السيوطي"
+  },
+  {
+    "grade": "قيل لا أصل له أو بأصله موضوع",
+    "class": "fabricated",
+    "sim_tokens": 100.0,
+    "scholar": "ملا علي قاري"
+  },
+  {
+    "grade": "ليس حديثا",
+    "class": "unclear",
+    "sim_tokens": 100.0,
+    "scholar": "محمد بن محمد الغزي"
+  },
+  {
+    "grade": "لا أعرفه",
+    "class": "unclear",
+    "sim_tokens": 100.0,
+    "scholar": "الزرقاني"
+  },
+  {
+    "grade": "لم يرد",
+    "class": "unclear",
+    "sim_tokens": 100.0,
+    "scholar": "محمد جار الله الصعدي"
+  },
+  {
+    "grade": "موضوع",
+    "class": "fabricated",
+    "sim_tokens": 100.0,
+    "scholar": "الألباني"
+  },
+  {
+    "grade": "مشهور لا أصل له",
+    "class": "fabricated",
+    "sim_tokens": 100.0,
+    "scholar": "ابن عثيمين"
+  },
+  {
+    "grade": "ليس بحديث",
+    "class": "unclear",
+    "sim_tokens": 100.0,
+    "scholar": "ابن عثيمين"
+  },
+  {
+    "grade": "غير صحيح",
+    "class": "weak",
+    "sim_tokens": 100.0,
+    "scholar": "ابن عثيمين"
+  },
+  {
+    "grade": "كذب على الرسول عليه الصلاة والسلام، وليس صحيح",
+    "class": "authentic",
+    "sim_tokens": 100.0,
+    "scholar": "ابن عثيمين"
+  },
+  {
+    "grade": "مشتهر على ألسنة النَّاس وليس له أصل",
+    "class": "fabricated",
+    "sim_tokens": 100.0,
+    "scholar": "ابن عثيمين"
+  },
+  {
+    "grade": "لم يثبت عن النبي صلى الله عليه وسلم",
+    "class": "weak",
+    "sim_tokens": 100.0,
+    "scholar": "الوادعي"
+  },
+  {
+    "grade": "ليس بحديث",
+    "class": "unclear",
+    "sim_tokens": 76.2,
+    "scholar": "محمد بن محمد الغزي"
+  }
+]

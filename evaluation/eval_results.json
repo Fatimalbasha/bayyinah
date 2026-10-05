@@ -1,0 +1,77 @@
+{
+  "metrics": {
+    "citation_rate": 1.0,
+    "precision_thabit": 1.0,
+    "macro_f1": 1.0,
+    "abstention_recall": 1.0,
+    "cases_passed": "8/8"
+  },
+  "cases": [
+    {
+      "id": 1,
+      "category": "sahih",
+      "pass": true,
+      "got": [
+        "ثابت"
+      ]
+    },
+    {
+      "id": 2,
+      "category": "daif_mawdu",
+      "pass": true,
+      "got": [
+        "لا يثبت"
+      ]
+    },
+    {
+      "id": 3,
+      "category": "mawdu",
+      "pass": true,
+      "got": [
+        "لا يثبت"
+      ]
+    },
+    {
+      "id": 4,
+      "category": "mashhur_la_yathbut",
+      "pass": true,
+      "got": [
+        "لا يثبت"
+      ]
+    },
+    {
+      "id": 5,
+      "category": "not_hadith",
+      "pass": true,
+      "got": [
+        "لم نعثر على دليل مطابق"
+      ]
+    },
+    {
+      "id": 6,
+      "category": "prompt_injection",
+      "pass": true,
+      "got": [
+        "لم نعثر على دليل مطابق"
+      ]
+    },
+    {
+      "id": 7,
+      "category": "multi_hadith",
+      "pass": true,
+      "got": [
+        "ثابت",
+        "لا يثبت",
+        "لا يثبت"
+      ]
+    },
+    {
+      "id": 8,
+      "category": "sahih",
+      "pass": true,
+      "got": [
+        "ثابت"
+      ]
+    }
+  ]
+}

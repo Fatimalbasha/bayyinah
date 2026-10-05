@@ -13,7 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 
 API_URL = "https://dorar.net/dorar_api.json?skey={query}"
-SEARCH_PAGE_URL = "https://dorar.net/hadith?skey={query}"  # رابط تحقق حقيقي صيغته موثقة
+SEARCH_PAGE_URL = "https://dorar.net/hadith/search?q={query}"  # يفتح نتائج البحث مباشرة
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 

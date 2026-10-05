@@ -15,3 +15,7 @@ venv/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Generated cache
+data/cache/
+*.pyc

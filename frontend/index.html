@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بيّنة — التحقق من الأحاديث المتداولة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1230; --panel:#171c42; --panel2:#1f2552; --line:#2c3366;
+    --text:#eef0ff; --muted:#9aa3d0; --accent:#39e6c3;
+    --ok:#2ecc71; --bad:#e74c3c; --warn:#f1c40f; --info:#7f8cff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .wrap{max-width:900px;margin:0 auto;padding:32px 20px 60px}
+  header{text-align:center;margin-bottom:28px}
+  header h1{font-size:2.4rem;color:var(--accent)}
+  header p{color:var(--muted);margin-top:6px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  textarea{width:100%;min-height:150px;background:var(--panel2);color:var(--text);
+    border:1px solid var(--line);border-radius:10px;padding:14px;font:inherit;font-size:1.05rem;resize:vertical}
+  textarea:focus{outline:2px solid var(--accent)}
+  .row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  button{background:var(--accent);color:#06233c;border:none;border-radius:10px;
+    padding:12px 34px;font:inherit;font-weight:700;font-size:1.05rem;cursor:pointer}
+  button:disabled{opacity:.5;cursor:wait}
+  .examples{display:flex;gap:8px;flex-wrap:wrap}
+  .examples a{color:var(--muted);font-size:.85rem;border:1px dashed var(--line);
+    border-radius:8px;padding:5px 10px;cursor:pointer;text-decoration:none}
+  .examples a:hover{color:var(--accent);border-color:var(--accent)}
+  #status{margin:18px 0;color:var(--muted);text-align:center;min-height:24px}
+  .result{margin-top:16px;border-right:6px solid var(--info)}
+  .result.ok{border-color:var(--ok)} .result.bad{border-color:var(--bad)}
+  .result.warn{border-color:var(--warn)}
+  .badge{display:inline-block;border-radius:8px;padding:4px 14px;font-weight:700;color:#06233c;background:var(--info)}
+  .result.ok .badge{background:var(--ok)} .result.bad .badge{background:var(--bad)}
+  .result.warn .badge{background:var(--warn)}
+  .input-text{color:var(--muted);font-size:.95rem;margin:10px 0 4px}
+  .matched{font-size:1.15rem;line-height:1.9;margin:8px 0;padding:10px;background:var(--panel2);border-radius:10px}
+  dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:12px 0;font-size:.98rem}
+  dt{color:var(--muted)} dd{font-weight:500}
+  .note{color:var(--muted);font-size:.92rem;border-top:1px dashed var(--line);padding-top:10px;margin-top:6px}
+  .src a{color:var(--accent)}
+  details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.88rem}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:right}
+  th{color:var(--muted);font-weight:500}
+  footer{margin-top:34px;text-align:center;color:var(--muted);font-size:.85rem;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>بيّنة</h1>
+    <p>الصق نصًّا فيه أحاديث متداولة، ويعرض لك النظام حالة كل حديث وحكمه ومصدره من الموسوعة الحديثية بالدرر السنية.</p>
+  </header>
+
+  <div class="card">
+    <textarea id="input" placeholder="مثال: قال النبي ﷺ: «إنما الأعمال بالنيات» ..."></textarea>
+    <div class="row">
+      <button id="btn" onclick="verify()">تحقّق</button>
+      <div class="examples">
+        <a onclick="fillExample()">تجربة بمثال جاهز</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="status"></div>
+  <div id="results"></div>
+
+  <footer id="disclaimer">
+    أداة مدعومة بالذكاء الاصطناعي لأغراض التحقق الأولي، تنقل الأحكام من مصادرها، وليست جهة فتوى ولا تغني عن مراجعة المختصين.
+  </footer>
+</div>
+
+<script>
+const API = "/api/verify";
+
+const STATUS_STYLE = {
+  "ثابت":                 {cls:"ok"},
+  "لا يثبت":              {cls:"bad"},
+  "لا يثبت بهذا اللفظ":   {cls:"warn"},
+  "يحتاج مراجعة مختص":    {cls:"warn"},
+  "لم نعثر على دليل مطابق":{cls:"bad"},
+};
+
+function fillExample(){
+  document.getElementById("input").value =
+`أيها الإخوة، النية أساس كل عمل، وقد صح عن النبي ﷺ أنه قال: «إنما الأعمال بالنيات».
+والعلم فريضة، وقد اشتهر على الألسنة: «اطلبوا العلم ولو بالصين».
+ويستشهد بعض الناس بقولهم: «النظافة من الإيمان».`;
+}
+
+function esc(s){
+  return (s ?? "—").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+
+async function verify(){
+  const text = document.getElementById("input").value.trim();
+  const btn = document.getElementById("btn");
+  const status = document.getElementById("status");
+  const box = document.getElementById("results");
+  if(text.length < 5){ status.textContent = "اكتبي نصًا أولًا."; return; }
+
+  btn.disabled = true;
+  status.textContent = "جارٍ البحث في المصادر المعتمدة…";
+  box.innerHTML = "";
+
+  try{
+    const resp = await fetch(API, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({text})
+    });
+    if(!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+
+    if(data.hadith_count === 0){
+      status.textContent = "لم يتعرف النظام على أحاديث داخل النص. جرّبي وضع الحديث بين علامتي «».";
+      return;
+    }
+    status.textContent = `تم فحص ${data.hadith_count} حديث/أحاديث — طريقة الاستخراج: ${data.extraction_method === "llm" ? "نموذج لغوي" : "قواعد لغوية"}`;
+
+    for(const r of data.results){
+      const st = STATUS_STYLE[r.status] || {cls:""};
+      const ev = (r.evidence || []).map(e =>
+        `<tr><td>${esc(e.grade)}</td><td>${esc(e.scholar)}</td><td>${esc(e.book)}</td><td>${esc(e.number_or_page)}</td></tr>`
+      ).join("");
+
+      box.insertAdjacentHTML("beforeend", `
+        <div class="card result ${st.cls}">
+          <span class="badge">${esc(r.status)}</span>
+          <div class="input-text">النص المُدخل: ${esc(r.input_hadith)}</div>
+          ${r.matched_text ? `<div class="matched">${esc(r.matched_text)}</div>` : ""}
+          <dl>
+            <dt>المصدر</dt><dd>${esc(r.book)}</dd>
+            <dt>الرقم/الصفحة</dt><dd>${esc(r.hadith_number)}</dd>
+            <dt>حكم المحدث</dt><dd>${esc(r.grade)}</dd>
+            <dt>العالم</dt><dd>${esc(r.scholar)}</dd>
+            <dt>درجة الثقة</dt><dd>${(r.confidence*100).toFixed(0)}٪ (${esc(r.match_type)})</dd>
+          </dl>
+          <div class="note">${esc(r.note)}</div>
+          <div class="note src">التحقق من المصدر: <a href="${esc(r.source_url)}" target="_blank" rel="noopener">البحث في الدرر السنية ↗</a></div>
+          ${ev ? `<details><summary>الشواهد والأحكام الأخرى (${(r.evidence||[]).length})</summary>
+            <table><tr><th>الحكم</th><th>العالم</th><th>الكتاب</th><th>الموضع</th></tr>${ev}</table></details>` : ""}
+        </div>`);
+    }
+  }catch(err){
+    status.textContent = "تعذر الاتصال بالخادم: " + err.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
