@@ -9,6 +9,13 @@ from pydantic import BaseModel, Field
 
 from backend.pipeline.pipeline import verify_text
 
+import urllib.parse
+
+from backend.pipeline.dorar_client import parse_dorar_html, SEARCH_PAGE_URL
+from backend.pipeline.extractor import extract_hadiths
+from backend.pipeline.pipeline import verify_text, DISCLAIMER
+from backend.pipeline.reviewer import review
+
 app = FastAPI(title="Bayyinah API", version="1.0.0",
               description="التحقق من الأحاديث المتداولة اعتمادًا على الموسوعة الحديثية بالدرر السنية")
 
@@ -40,6 +47,41 @@ def debug_dorar():
 @app.post("/api/verify")
 def verify(req: VerifyRequest):
     return verify_text(req.text)
+
+class ExtractRequest(BaseModel):
+    text: str = Field(..., min_length=5, max_length=20000)
+
+
+@app.post("/api/extract")
+def extract(req: ExtractRequest):
+    """المرحلة 1: استخراج الأحاديث فقط — المتصفح سيجلب نتائج الدرر بنفسه."""
+    return extract_hadiths(req.text)
+
+
+class JudgeItem(BaseModel):
+    hadith: str
+    dorar_html: str = ""   # ناتج ahadith.result الخام كما أعادته واجهة الدرر للمتصفح
+    fetch_failed: bool = False
+
+
+class JudgeRequest(BaseModel):
+    items: list[JudgeItem]
+
+
+@app.post("/api/judge")
+def judge(req: JudgeRequest):
+    """المرحلة 2: الحكم والمراجعة على نتائج جلبها المتصفح من واجهة الدرر الرسمية."""
+    results = []
+    for item in req.items[:10]:
+        encoded = urllib.parse.quote(item.hadith)
+        payload = {
+            "query": item.hadith,
+            "source_url": SEARCH_PAGE_URL.format(query=encoded),
+            "results": [] if item.fetch_failed else parse_dorar_html(item.dorar_html),
+            "error": "browser fetch failed" if item.fetch_failed else None,
+        }
+        results.append(review(item.hadith, payload))
+    return {"hadith_count": len(results), "results": results, "disclaimer": DISCLAIMER}
 
 
 # تقديم الواجهة (سنضيف ملفاتها في الخطوة القادمة)

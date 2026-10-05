@@ -97,6 +97,21 @@ function esc(s){
   return (s ?? "—").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 }
 
+async function fetchDorarJSONP(query){
+  // واجهة الدرر الرسمية مصممة للنداء من المتصفح عبر JSONP (dorar.net/article/389)
+  return new Promise((resolve) => {
+    const cb = "dorar_cb_" + Math.random().toString(36).slice(2);
+    const script = document.createElement("script");
+    const timer = setTimeout(() => { cleanup(); resolve(null); }, 20000);
+    function cleanup(){ clearTimeout(timer); delete window[cb]; script.remove(); }
+    window[cb] = (data) => { cleanup(); resolve(data?.ahadith?.result ?? ""); };
+    script.src = "https://dorar.net/dorar_api.json?skey=" +
+                 encodeURIComponent(query) + "&callback=" + cb;
+    script.onerror = () => { cleanup(); resolve(null); };
+    document.body.appendChild(script);
+  });
+}
+
 async function verify(){
   const text = document.getElementById("input").value.trim();
   const btn = document.getElementById("btn");
@@ -105,23 +120,42 @@ async function verify(){
   if(text.length < 5){ status.textContent = "اكتبي نصًا أولًا."; return; }
 
   btn.disabled = true;
-  status.textContent = "جارٍ البحث في المصادر المعتمدة…";
   box.innerHTML = "";
 
   try{
-    const resp = await fetch(API, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
+    // 1) استخراج الأحاديث (على السيرفر)
+    status.textContent = "جارٍ استخراج الأحاديث…";
+    const exResp = await fetch("/api/extract", {
+      method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({text})
     });
-    if(!resp.ok) throw new Error("HTTP " + resp.status);
-    const data = await resp.json();
+    if(!exResp.ok) throw new Error("HTTP " + exResp.status);
+    const ex = await exResp.json();
 
-    if(data.hadith_count === 0){
+    if(!ex.hadiths || ex.hadiths.length === 0){
       status.textContent = "لم يتعرف النظام على أحاديث داخل النص. جرّبي وضع الحديث بين علامتي «».";
       return;
     }
-    status.textContent = `تم فحص ${data.hadith_count} حديث/أحاديث — طريقة الاستخراج: ${data.extraction_method === "llm" ? "نموذج لغوي" : "قواعد لغوية"}`;
+
+    // 2) جلب نتائج الدرر من متصفحك مباشرة (متوازيًا)
+    status.textContent = `جارٍ البحث في الموسوعة الحديثية عن ${ex.hadiths.length} حديث/أحاديث…`;
+    const raw = await Promise.all(ex.hadiths.map(h => fetchDorarJSONP(h)));
+    const items = ex.hadiths.map((h, i) => ({
+      hadith: h,
+      dorar_html: raw[i] ?? "",
+      fetch_failed: raw[i] === null,
+    }));
+
+    // 3) الحكم والمراجعة (على السيرفر)
+    status.textContent = "جارٍ تحليل الأحكام والمصادر…";
+    const jResp = await fetch("/api/judge", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({items})
+    });
+    if(!jResp.ok) throw new Error("HTTP " + jResp.status);
+    const data = await jResp.json();
+
+    status.textContent = `تم فحص ${data.hadith_count} حديث/أحاديث — طريقة الاستخراج: ${ex.method === "llm" ? "نموذج لغوي" : "قواعد لغوية"}`;
 
     for(const r of data.results){
       const st = STATUS_STYLE[r.status] || {cls:""};
