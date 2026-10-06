@@ -139,7 +139,7 @@ async function verify(){
 
     // 2) جلب نتائج الدرر من متصفحك مباشرة (متوازيًا)
     status.textContent = `جارٍ البحث في الموسوعة الحديثية عن ${ex.hadiths.length} حديث/أحاديث…`;
-    const raw = await Promise.all(ex.hadiths.map(h => fetchDorarJSONP(h)));
+    const raw = ex.hadiths.map(() => null); // الجلب يتم من الكاش المُسبق على السيرفر
     const items = ex.hadiths.map((h, i) => ({
       hadith: h,
       dorar_html: raw[i] ?? "",

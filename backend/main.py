@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from backend.pipeline.dorar_client import search_dorar
 
 from backend.pipeline.pipeline import verify_text
 
@@ -73,13 +74,17 @@ def judge(req: JudgeRequest):
     """المرحلة 2: الحكم والمراجعة على نتائج جلبها المتصفح من واجهة الدرر الرسمية."""
     results = []
     for item in req.items[:10]:
-        encoded = urllib.parse.quote(item.hadith)
-        payload = {
-            "query": item.hadith,
-            "source_url": SEARCH_PAGE_URL.format(query=encoded),
-            "results": [] if item.fetch_failed else parse_dorar_html(item.dorar_html),
-            "error": "browser fetch failed" if item.fetch_failed else None,
-        }
+        if item.fetch_failed or not item.dorar_html:
+            # المتصفح لم يجلب شيئًا ← نستخدم الكاش المُسبق (أو نمتنع إن لم يوجد)
+            payload = search_dorar(item.hadith)
+        else:
+            encoded = urllib.parse.quote(item.hadith)
+            payload = {
+                "query": item.hadith,
+                "source_url": SEARCH_PAGE_URL.format(query=encoded),
+                "results": parse_dorar_html(item.dorar_html),
+                "error": None,
+            }
         results.append(review(item.hadith, payload))
     return {"hadith_count": len(results), "results": results, "disclaimer": DISCLAIMER}
 

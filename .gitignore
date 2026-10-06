@@ -17,5 +17,4 @@ venv/
 Thumbs.db
 
 # Generated cache
-data/cache/
 *.pyc
