@@ -178,6 +178,24 @@ evaluation/eval_results.json
 
 ---
 
+## طريقة عمل النسخة الحية (لقطة محلية من الدرر)
+
+موقع الدرر السنية يرفض الطلبات القادمة من سيرفرات الاستضافة (403)، ولا يسمح بالجلب المباشر من متصفح المستخدم (لا توجد ترويسة CORS). لذلك يعمل النظام بمستويين:
+
+- **التشغيل المحلي:** يتصل بالدرر مباشرة ويعمل على أي حديث.
+- **النسخة الحية:** تبحث في لقطة محلية من نتائج الدرر الحقيقية: 170 استعلامًا لأشهر الأحاديث المتداولة (الصحيح منها وغير الثابت)، أنتجت 2514 رواية فريدة بأحكامها ومصادرها. البحث فيها تقريبي (rapidfuzz)، فيتعرّف النظام على الحديث ولو اختلف لفظه عن المخزّن.
+
+ضمانات الموثوقية:
+
+- الملف `scripts/seed_cache.py` يحتوي **نصوص البحث فقط**. الأحكام وأسماء العلماء والمصادر منقولة حرفيًا من رد الدرر، ولم يُكتب أي حكم يدويًا.
+- الاستخراج وتصنيف الأحكام والترجيح تعمل كلها حيًّا على السيرفر.
+- أي حديث لا يطابق رواية في اللقطة **يمتنع عنه النظام بشفافية**، ولا يُحكم عليه بعدم الوجود، لأن غيابه عن اللقطة لا يعني غيابه عن الدرر.
+- توسعة اللقطة تتم بإضافة نصوص للقائمة وإعادة تشغيل السكربت.
+
+---
+
+---
+
 ## مصادر البيانات والتراخيص
 
 | المصدر | الاستخدام | الملاحظات |
@@ -375,6 +393,23 @@ The current preliminary evaluation set contains **8 test cases**, covering scena
 > **Limitation:** The current evaluation set is preliminary and contains only 8 test cases. Expanding the benchmark to approximately 100 cases is part of the planned future work.
 
 > The mapping of Arabic hadith grading terminology currently relies on reviewable keyword lists and can be further validated with domain specialists.
+
+---
+## How the Live Version Works (Local Dorar Snapshot)
+
+Dorar Al-Sunnah rejects requests coming from hosting servers (403) and does not allow direct fetching from the user's browser (no CORS header). The system therefore runs in two modes:
+
+- **Local run:** connects to Dorar directly and works on any hadith.
+- **Live version:** searches a local snapshot of real Dorar results: 170 queries covering widely circulated hadiths (both authentic and unestablished), yielding 2,514 unique narrations with their rulings and sources. Search is fuzzy (rapidfuzz), so a hadith is recognized even when its wording differs from the stored text.
+
+Reliability guarantees:
+
+- `scripts/seed_cache.py` contains **search queries only**. Rulings, scholar names, and sources are copied verbatim from Dorar's responses; no ruling was written by hand.
+- Extraction, grade classification, and review all run live on the server.
+- Any hadith that matches no narration in the snapshot gets a **transparent abstention**. It is not reported as "not found", because absence from the snapshot does not mean absence from Dorar.
+- The snapshot is extended by adding queries to the list and re-running the script.
+
+---
 
 ---
 
