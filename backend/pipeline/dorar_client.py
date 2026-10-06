@@ -11,6 +11,9 @@ from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
+from rapidfuzz import fuzz
+
+from .normalizer import normalize
 
 API_URL = "https://dorar.net/dorar_api.json?skey={query}"
 SEARCH_PAGE_URL = "https://dorar.net/hadith/search?q={query}"  # يفتح نتائج البحث مباشرة
@@ -33,6 +36,11 @@ FIELD_MAP = {
     "الصفحة أو الرقم": "number_or_page",
     "خلاصة حكم المحدث": "grade",
 }
+
+# البحث المحلي في اللقطة المخزّنة (يُستخدم فقط عند تعذّر الوصول للدرر)
+LOCAL_MIN_SCORE = 85
+LOCAL_TOP_K = 15
+_LOCAL_INDEX = None
 
 
 def _strip_tashkeel(text: str) -> str:
@@ -93,6 +101,42 @@ def parse_dorar_html(html: str) -> list[dict]:
     return results
 
 
+def _load_local_index() -> list:
+    """يجمع كل السجلات المخزّنة في data/cache مرة واحدة، بلا تكرار.
+    السجلات منقولة من ردود الدرر كما هي، ولا يُعدَّل فيها شيء."""
+    global _LOCAL_INDEX
+    if _LOCAL_INDEX is None:
+        seen, index = set(), []
+        for f in CACHE_DIR.glob("dorar_*.json"):
+            try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            for rec in data.get("results", []):
+                text = rec.get("matched_text") or ""
+                key = (text, rec.get("scholar"), rec.get("book"), rec.get("number_or_page"))
+                if not text or key in seen:
+                    continue
+                seen.add(key)
+                index.append((normalize(text), rec))
+        _LOCAL_INDEX = index
+    return _LOCAL_INDEX
+
+
+def _local_search(query: str) -> list[dict]:
+    """مطابقة تقريبية بين النص المُدخل وكل الروايات المخزّنة. تعيد الأقرب فقط."""
+    nq = normalize(query)
+    if not nq:
+        return []
+    scored = []
+    for ntext, rec in _load_local_index():
+        score = max(fuzz.token_set_ratio(nq, ntext), fuzz.partial_ratio(nq, ntext))
+        if score >= LOCAL_MIN_SCORE:
+            scored.append((score, fuzz.ratio(nq, ntext), rec))
+    scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    return [rec for _, _, rec in scored[:LOCAL_TOP_K]]
+
+
 def search_dorar(query: str, use_cache: bool = True, timeout: int = 20) -> dict:
     """يعيد dict فيه: query, source_url (رابط تحقق حقيقي), results (قائمة سجلات نظيفة).
     أي فشل شبكة يعيد results فارغة مع حقل error — لا استثناءات تكسر الخادم."""
@@ -122,7 +166,14 @@ def search_dorar(query: str, use_cache: bool = True, timeout: int = 20) -> dict:
             break
         except Exception as e:  # شبكة/تحليل — نعيد المحاولة ثم نمتنع بدل أن ننهار
             last_err = f"{type(e).__name__}: {e}"
+
     if last_err:
+        # تعذّر الوصول للدرر: نبحث في اللقطة المحلية قبل الامتناع
+        local = _local_search(q)
+        if local:
+            payload["results"] = local
+            payload["retrieval"] = "local_snapshot"
+            return payload  # لا نحفظها في الكاش لأنها ليست ردًّا مباشرًا من الدرر
         payload["error"] = last_err
 
     if use_cache and payload["error"] is None:
